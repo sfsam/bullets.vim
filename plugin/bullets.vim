@@ -430,7 +430,9 @@ endfun
 fun! s:delete_empty_bullet(line_num)
   if g:bullets_delete_last_bullet_if_empty
     call setline(a:line_num, '')
+    return 1
   endif
+  return 0
 endfun
 
 fun! s:insert_new_bullet()
@@ -443,6 +445,7 @@ fun! s:insert_new_bullet()
   " searching up from there
   let l:send_return = 1
   let l:normal_mode = mode() ==# 'n'
+  let l:deleted_empty_bullet = 0
 
   " check if current line is a bullet and we are at the end of the line (for
   " insert mode only)
@@ -451,7 +454,7 @@ fun! s:insert_new_bullet()
     if l:bullet.text_after_bullet ==# ''
       " We don't want to create a new bullet if the previous one was not used,
       " instead we want to delete the empty bullet - like word processors do
-      call s:delete_empty_bullet(l:curr_line_num)
+      let l:deleted_empty_bullet = s:delete_empty_bullet(l:curr_line_num)
     elseif !(l:bullet.bullet_type ==# 'abc' && s:abc2dec(l:bullet.bullet) + 1 > s:abc_max)
 
       let l:next_bullet = s:next_bullet_str(l:bullet)
@@ -485,8 +488,9 @@ fun! s:insert_new_bullet()
       startinsert!
     endif
 
-    let l:keys = l:send_return ? "\<CR>" : ''
-    call feedkeys(l:keys, 'n')
+    if l:send_return && !l:deleted_empty_bullet
+      call feedkeys("\<CR>", 'n')
+    endif
   endif
 
   " need to return a string since we are in insert mode calling with <C-R>=
